@@ -1,6 +1,6 @@
 # Open CryptoPay client tests
 
-Black-box HTTP tests that check whether the Open CryptoPay API at [api.dfx.swiss](https://api.dfx.swiss) still speaks the Open CryptoPay protocol. The suite acts as an HTTP client against the live API; it does not exercise wallets.
+Tests for the Open CryptoPay API at [api.dfx.swiss](https://api.dfx.swiss).
 
 Protocol description: [opencryptopay.io](https://opencryptopay.io) · [openCryptoPay/landingPage](https://github.com/openCryptoPay/landingPage)
 
