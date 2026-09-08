@@ -16,17 +16,24 @@ describe('lnurlp callback', () => {
       return;
     }
     assert.equal(pay.status, 200);
+    assert.equal(typeof pay.body.callback, 'string');
+    assert.ok(pay.body.callback.startsWith('http'));
     const quoteId = pay.body.quote.id;
     const available = (pay.body.transferAmounts ?? []).filter(
       (ta) => ta.available === true && Array.isArray(ta.assets) && ta.assets.length > 0,
     );
+    assert.ok(available.length > 0);
     for (const ta of available) {
       const method = ta.method;
       const firstAsset = ta.assets[0].asset;
       await t.test(`${method} ${firstAsset}`, async (nested) => {
-        const { status, body } = await getJson(
-          `/lnurlp/cb/${LINK_ID}?quote=${encodeURIComponent(quoteId)}&method=${encodeURIComponent(method)}&asset=${encodeURIComponent(firstAsset)}`,
-        );
+        const sep = pay.body.callback.includes('?') ? '&' : '?';
+        const callbackUrl =
+          `${pay.body.callback}${sep}` +
+          `quote=${encodeURIComponent(quoteId)}` +
+          `&method=${encodeURIComponent(method)}` +
+          `&asset=${encodeURIComponent(firstAsset)}`;
+        const { status, body } = await getJson(callbackUrl);
         if (status === 404) {
           const again = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
           if (again.status === 404 && again.body?.message === 'No pending payment found') {
@@ -40,7 +47,8 @@ describe('lnurlp callback', () => {
           return;
         }
         assert.equal(status, 200);
-        if (typeof body.pr === 'string') {
+        if (method === 'Lightning') {
+          assert.equal(typeof body.pr, 'string');
           assert.ok(body.pr.startsWith('ln'));
         } else {
           assert.equal(body.blockchain, method);

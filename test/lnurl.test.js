@@ -28,5 +28,6 @@ describe('encodeLnurl', () => {
     assert.equal(typeof encoded, 'string');
     assert.ok(encoded.startsWith('LNURL1'));
     assert.equal(decodeLnurl(encoded), EXPECTED_URL);
+    assert.equal(encodeLnurl(EXPECTED_URL), DOCUMENTED_LNURL);
   });
 });
