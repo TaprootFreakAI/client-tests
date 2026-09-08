@@ -23,10 +23,30 @@ describe('lnurlp pay request', () => {
       assert.ok(body.requestedAmount.amount > 0);
       assert.ok(Array.isArray(body.transferAmounts));
       assert.ok(body.transferAmounts.length > 0);
+      assert.ok(Array.isArray(body.possibleStandards));
+      assert.ok(body.possibleStandards.includes('OpenCryptoPay'));
+      assert.equal(typeof body.displayName, 'string');
+      assert.ok(body.displayName.length > 0);
+      assert.equal(typeof body.displayQr, 'boolean');
+      assert.equal(typeof body.mode, 'string');
+      assert.equal(typeof body.minSendable, 'number');
+      assert.equal(typeof body.maxSendable, 'number');
+      assert.equal(typeof body.recipient, 'object');
+      assert.ok(body.recipient !== null);
+      assert.equal(typeof body.recipient.name, 'string');
       for (const t of body.transferAmounts) {
         assert.equal(typeof t.method, 'string');
         assert.equal(typeof t.available, 'boolean');
         assert.ok(Array.isArray(t.assets));
+        if (t.available === true) {
+          assert.ok(t.assets.length > 0);
+          for (const asset of t.assets) {
+            assert.equal(typeof asset.asset, 'string');
+            assert.ok(asset.amount != null);
+          }
+        } else {
+          assert.equal(t.assets.length, 0);
+        }
       }
       assert.ok(body.transferAmounts.some((t) => t.method === 'Lightning'));
       assert.ok(body.transferAmounts.some((t) => t.method === 'Ethereum'));

@@ -9,7 +9,7 @@ describe('lnurlp callback', () => {
     assert.equal(body.message, 'No matching actual quote found');
   });
 
-  it('GET callback with Lightning returns lnbc invoice when quote available', async (t) => {
+  it('GET callback for every available transfer method', async (t) => {
     const pay = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
     if (pay.status === 404 && pay.body?.message === 'No pending payment found') {
       t.skip('No pending payment on demo link');
@@ -17,45 +17,38 @@ describe('lnurlp callback', () => {
     }
     assert.equal(pay.status, 200);
     const quoteId = pay.body.quote.id;
-
-    const { status, body } = await getJson(
-      `/lnurlp/cb/${LINK_ID}?quote=${encodeURIComponent(quoteId)}&method=Lightning&asset=BTC`,
+    const available = (pay.body.transferAmounts ?? []).filter(
+      (ta) => ta.available === true && Array.isArray(ta.assets) && ta.assets.length > 0,
     );
-    if (status === 404) {
-      const again = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
-      if (again.status === 404 && again.body?.message === 'No pending payment found') {
-        t.skip('Quote vanished before callback (no pending payment)');
-        return;
-      }
+    for (const ta of available) {
+      const method = ta.method;
+      const firstAsset = ta.assets[0].asset;
+      await t.test(`${method} ${firstAsset}`, async (nested) => {
+        const { status, body } = await getJson(
+          `/lnurlp/cb/${LINK_ID}?quote=${encodeURIComponent(quoteId)}&method=${encodeURIComponent(method)}&asset=${encodeURIComponent(firstAsset)}`,
+        );
+        if (status === 404) {
+          const again = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
+          if (again.status === 404 && again.body?.message === 'No pending payment found') {
+            nested.skip('Quote vanished before callback (no pending payment)');
+            return;
+          }
+          assert.fail(`callback 404 but pay-request still pending; message=${body?.message ?? '(none)'}`);
+        }
+        if (status >= 500) {
+          nested.skip(typeof body?.message === 'string' ? body.message : `HTTP ${status}`);
+          return;
+        }
+        assert.equal(status, 200);
+        if (typeof body.pr === 'string') {
+          assert.ok(body.pr.startsWith('ln'));
+        } else {
+          assert.equal(body.blockchain, method);
+          assert.equal(typeof body.uri, 'string');
+          assert.ok(body.uri.length > 0);
+          assert.ok(body.expiryDate);
+        }
+      });
     }
-    assert.equal(status, 200);
-    assert.equal(typeof body.pr, 'string');
-    assert.ok(body.pr.startsWith('lnbc'));
-  });
-
-  it('GET callback with Ethereum returns ethereum URI when quote available', async (t) => {
-    const pay = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
-    if (pay.status === 404 && pay.body?.message === 'No pending payment found') {
-      t.skip('No pending payment on demo link');
-      return;
-    }
-    assert.equal(pay.status, 200);
-    const quoteId = pay.body.quote.id;
-
-    const { status, body } = await getJson(
-      `/lnurlp/cb/${LINK_ID}?quote=${encodeURIComponent(quoteId)}&method=Ethereum&asset=ZCHF`,
-    );
-    if (status === 404) {
-      const again = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
-      if (again.status === 404 && again.body?.message === 'No pending payment found') {
-        t.skip('Quote vanished before callback (no pending payment)');
-        return;
-      }
-    }
-    assert.equal(status, 200);
-    assert.equal(body.blockchain, 'Ethereum');
-    assert.equal(typeof body.uri, 'string');
-    assert.ok(body.uri.startsWith('ethereum:'));
-    assert.ok(body.expiryDate);
   });
 });

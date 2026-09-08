@@ -24,4 +24,18 @@ describe('paymentLink wallet apps', () => {
       assert.equal(item.recommended, true);
     }
   });
+
+  it('GET /paymentLink/walletApp/:id returns the first recommended app', async () => {
+    const { status, body } = await getJson('/paymentLink/walletApp/recommended');
+    assert.equal(status, 200);
+    assert.ok(Array.isArray(body));
+    assert.ok(body.length > 0);
+    const id = body[0].id;
+    const detail = await getJson(`/paymentLink/walletApp/${encodeURIComponent(id)}`);
+    assert.equal(detail.status, 200);
+    assert.equal(detail.body.id, id);
+    assert.equal(typeof detail.body.name, 'string');
+    assert.ok(detail.body.name.length > 0);
+    assert.ok(Array.isArray(detail.body.supportedMethods));
+  });
 });

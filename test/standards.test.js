@@ -17,4 +17,16 @@ describe('paymentLink standards', () => {
     assert.ok(body.label);
     assert.ok(body.description);
   });
+
+  it('GET /paymentLink/standard/:id returns details for every listed id', async () => {
+    const { status, body } = await getJson('/paymentLink/standard');
+    assert.equal(status, 200);
+    assert.ok(Array.isArray(body));
+    assert.ok(body.length > 0);
+    for (const item of body) {
+      const detail = await getJson(`/paymentLink/standard/${encodeURIComponent(item.id)}`);
+      assert.equal(detail.status, 200);
+      assert.equal(detail.body.id, item.id);
+    }
+  });
 });

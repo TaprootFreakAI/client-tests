@@ -23,7 +23,16 @@ No install step — there are no npm dependencies.
 
 ## Scope
 
-These tests never pay, never broadcast transactions, never cancel payments, and never create payment links. They only `GET` public protocol endpoints (standards, wallet apps, pay request, callback quote fetch, recipient).
+Coverage:
+
+- LNURL encode/decode
+- payment standards list and per-id detail
+- wallet apps list, recommended, and per-id detail
+- full pay-request schema (including every transferAmounts entry)
+- a callback GET for every **available** transfer method on the live pay-request
+- that `/lnurlp/tx` rejects a missing quote
+
+These tests never pay, never broadcast transactions, never cancel payments, never create payment links, and never wait on `/lnurlp/wait`. They only `GET` public unauthenticated wallet-client endpoints.
 
 ## License
 
