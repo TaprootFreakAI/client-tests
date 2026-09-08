@@ -28,6 +28,7 @@ Coverage:
 - LNURL encode/decode
 - payment standards list and per-id detail
 - wallet apps list, recommended, and per-id detail
+- paymentLink recipient lookup
 - full pay-request schema (including every transferAmounts entry)
 - a callback GET for every **available** transfer method on the live pay-request
 - that `/lnurlp/tx` rejects a missing quote
