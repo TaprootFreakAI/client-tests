@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { LINK_ID, getJson } from '../lib/http.js';
 import { callbackUrl, skipIfNoPending } from './support.js';
 
-async function getCallbackOrSkip(nested, url) {
+async function getCallbackOrSkip(nested, url, method) {
   let status;
   let body;
   try {
@@ -11,9 +11,17 @@ async function getCallbackOrSkip(nested, url) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const http = msg.match(/HTTP (\d+)/);
-    if (http && Number(http[1]) >= 500) {
-      nested.skip(msg);
-      return null;
+    if (http) {
+      const code = Number(http[1]);
+      if (method === 'BinancePay') {
+        assert.equal(code, 503);
+        assert.equal(typeof msg, 'string');
+        return null;
+      }
+      if (code >= 500) {
+        nested.skip(msg);
+        return null;
+      }
     }
     throw err;
   }
@@ -26,6 +34,11 @@ async function getCallbackOrSkip(nested, url) {
     assert.fail(`callback 404 but pay-request still pending; message=${body?.message ?? '(none)'}`);
   }
   if (status >= 500) {
+    if (method === 'BinancePay') {
+      assert.equal(status, 503);
+      assert.equal(typeof body.message, 'string');
+      return null;
+    }
     nested.skip(typeof body?.message === 'string' ? body.message : `HTTP ${status}`);
     return null;
   }
@@ -56,7 +69,7 @@ describe('lnurlp callback', () => {
         const asset = a.asset;
         await t.test(`${method} ${asset}`, async (nested) => {
           const url = callbackUrl(pay.body.callback, { quote: quoteId, method, asset });
-          const result = await getCallbackOrSkip(nested, url);
+          const result = await getCallbackOrSkip(nested, url, method);
           if (!result) return;
           const { status, body } = result;
           assert.equal(status, 200);
@@ -145,7 +158,7 @@ describe('lnurlp callback', () => {
           method,
           asset: 'BTC',
         });
-        const result = await getCallbackOrSkip(nested, url);
+        const result = await getCallbackOrSkip(nested, url, method);
         if (!result) return;
         const { status, body } = result;
         if (status === 400) {

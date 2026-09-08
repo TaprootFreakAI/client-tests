@@ -36,4 +36,19 @@ describe('LNURL siblings', () => {
       );
     }
   });
+
+  it('GET /lnurla/status returns 404 mentioning k1', async () => {
+    const { status, body } = await getJson('/lnurla/status');
+    assert.equal(status, 404);
+    const msg = body?.message;
+    if (Array.isArray(msg)) {
+      assert.ok(
+        msg.some((m) => String(m).toLowerCase().includes('k1')),
+        'expected k1 in message array',
+      );
+    } else {
+      assert.equal(typeof msg, 'string');
+      assert.ok(msg.toLowerCase().includes('k1'), 'expected k1 in message');
+    }
+  });
 });
