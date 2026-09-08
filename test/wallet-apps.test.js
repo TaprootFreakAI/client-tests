@@ -60,4 +60,26 @@ describe('paymentLink wallet apps', () => {
     assert.equal(status, 404);
     assert.equal(body.message, 'Wallet app not found');
   });
+
+  it('GET /paymentLink/walletApp?blockchain=Bitcoin filters by Bitcoin or Lightning', async () => {
+    const { status, body } = await getJson(
+      '/paymentLink/walletApp?blockchain=Bitcoin',
+    );
+    assert.equal(status, 200);
+    assert.ok(Array.isArray(body));
+    assert.ok(body.length > 0);
+    for (const app of body) {
+      assert.ok(
+        app.supportedMethods.includes('Bitcoin') ||
+          app.supportedMethods.includes('Lightning'),
+        `app ${app.id} should support Bitcoin or Lightning`,
+      );
+    }
+  });
+
+  it('GET /paymentLink/walletApp?active=false returns an array', async () => {
+    const { status, body } = await getJson('/paymentLink/walletApp?active=false');
+    assert.equal(status, 200);
+    assert.ok(Array.isArray(body));
+  });
 });

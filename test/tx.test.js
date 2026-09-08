@@ -21,4 +21,20 @@ describe('lnurlp tx', () => {
     assert.equal(status, 400);
     assert.equal(body.message, 'Hex, Tx or Sender parameter missing');
   });
+
+  it('GET /lnurlp/tx with invalid hex returns invalid message', async (t) => {
+    const pay = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
+    if (skipIfNoPending(t, pay)) return;
+    assert.equal(pay.status, 200);
+    const quoteId = pay.body.quote.id;
+    const { status, body } = await getJson(
+      `/lnurlp/tx/${LINK_ID}?quote=${encodeURIComponent(quoteId)}&method=Ethereum&hex=not-a-hex`,
+    );
+    assert.equal(status, 400);
+    assert.equal(typeof body.message, 'string');
+    assert.ok(
+      body.message.toLowerCase().includes('invalid'),
+      'expected message to mention invalid',
+    );
+  });
 });
