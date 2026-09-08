@@ -9,4 +9,18 @@ describe('paymentLink recipient', () => {
     assert.equal(typeof body.id, 'number');
     assert.equal(body.currency.name, 'CHF');
   });
+
+  it('GET /paymentLink/recipient without id returns Payment route not found', async () => {
+    const { status, body } = await getJson('/paymentLink/recipient');
+    assert.equal(status, 404);
+    assert.equal(body.message, 'Payment route not found');
+  });
+
+  it('GET /paymentLink/recipient with unknown id returns Payment route not found', async () => {
+    const { status, body } = await getJson(
+      '/paymentLink/recipient?id=not-a-real-recipient-xyz',
+    );
+    assert.equal(status, 404);
+    assert.equal(body.message, 'Payment route not found');
+  });
 });

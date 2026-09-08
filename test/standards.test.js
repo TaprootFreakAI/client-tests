@@ -29,4 +29,10 @@ describe('paymentLink standards', () => {
       assert.equal(detail.body.id, item.id);
     }
   });
+
+  it('GET /paymentLink/standard/NotAStandard returns Payment standard not found', async () => {
+    const { status, body } = await getJson('/paymentLink/standard/NotAStandard');
+    assert.equal(status, 404);
+    assert.equal(body.message, 'Payment standard not found');
+  });
 });

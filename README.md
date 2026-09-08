@@ -26,14 +26,17 @@ No install step — there are no npm dependencies.
 Coverage:
 
 - LNURL encode/decode
-- payment standards list and per-id detail
-- wallet apps list, recommended, and per-id detail
-- paymentLink recipient lookup
+- payment standards list, per-id detail, unknown id 404
+- wallet apps list, recommended, every listed app by id, unknown id 404
+- paymentLink recipient lookup, missing id, unknown id
+- unauthenticated merchant routes (401/403 and public locations)
 - full pay-request schema (including every transferAmounts entry)
-- a callback GET for every **available** transfer method on the live pay-request
-- that `/lnurlp/tx` rejects a missing quote
+- POST `/lnurlp/{id}` without amount is 400
+- a callback GET for every **available** method×asset pair on the live pay-request
+- callback quote-only Lightning default, missing asset, unknown quote, unavailable methods
+- `/lnurlp/tx` rejects a missing quote and rejects missing hex/tx/sender
 
-These tests never pay, never broadcast transactions, never cancel payments, never create payment links, and never wait on `/lnurlp/wait`. They only `GET` public unauthenticated wallet-client endpoints.
+Out of scope: paying, broadcasting signed txs, cancel, wait (`/lnurlp/wait`), creating payment links with credentials.
 
 ## License
 

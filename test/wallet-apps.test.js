@@ -38,4 +38,26 @@ describe('paymentLink wallet apps', () => {
     assert.ok(detail.body.name.length > 0);
     assert.ok(Array.isArray(detail.body.supportedMethods));
   });
+
+  it('GET /paymentLink/walletApp/:id returns every listed app', async (t) => {
+    const { status, body } = await getJson('/paymentLink/walletApp');
+    assert.equal(status, 200);
+    assert.ok(Array.isArray(body));
+    assert.ok(body.length > 0);
+    for (const item of body) {
+      await t.test(String(item.id), async () => {
+        const detail = await getJson(
+          `/paymentLink/walletApp/${encodeURIComponent(item.id)}`,
+        );
+        assert.equal(detail.status, 200);
+        assert.equal(detail.body.id, item.id);
+      });
+    }
+  });
+
+  it('GET /paymentLink/walletApp/99999 returns Wallet app not found', async () => {
+    const { status, body } = await getJson('/paymentLink/walletApp/99999');
+    assert.equal(status, 404);
+    assert.equal(body.message, 'Wallet app not found');
+  });
 });

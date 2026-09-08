@@ -34,6 +34,15 @@ describe('lnurlp pay request', () => {
       assert.equal(typeof body.recipient, 'object');
       assert.ok(body.recipient !== null);
       assert.equal(typeof body.recipient.name, 'string');
+      if (body.metadata !== undefined) {
+        assert.equal(typeof body.metadata, 'string');
+      }
+      if (body.route !== undefined) {
+        assert.equal(typeof body.route, 'string');
+      }
+      if (body.externalId !== undefined) {
+        assert.equal(typeof body.externalId, 'string');
+      }
       for (const t of body.transferAmounts) {
         assert.equal(typeof t.method, 'string');
         assert.equal(typeof t.available, 'boolean');
