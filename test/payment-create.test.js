@@ -72,6 +72,7 @@ describe('paymentLink payment create (POS)', { skip: !POS_ENABLED }, () => {
     });
 
     let created = false;
+    let testErr;
     try {
       assert.ok(
         createRes.status === 200 || createRes.status === 201,
@@ -89,20 +90,28 @@ describe('paymentLink payment create (POS)', { skip: !POS_ENABLED }, () => {
 
       const pay = await getJson(`/lnurlp/${posLinkId}?timeout=0`);
       assert.equal(pay.status, 200);
+    } catch (err) {
+      testErr = err;
+      throw err;
     } finally {
       if (created) {
-        const cancelUrl =
-          `${BASE}/paymentLink/payment?key=${encodeURIComponent(key)}` +
-          `&linkId=${encodeURIComponent(posLinkId)}` +
-          `&externalPaymentId=${encodeURIComponent(externalId)}`;
-        const cancelRes = await fetch(cancelUrl, {
-          method: 'DELETE',
-          signal: AbortSignal.timeout(20_000),
-        });
-        assert.ok(
-          cancelRes.status === 200 || cancelRes.status === 204,
-          `expected 200 or 204 from cancel, got ${cancelRes.status}`,
-        );
+        try {
+          const cancelUrl =
+            `${BASE}/paymentLink/payment?key=${encodeURIComponent(key)}` +
+            `&linkId=${encodeURIComponent(posLinkId)}` +
+            `&externalPaymentId=${encodeURIComponent(externalId)}`;
+          const cancelRes = await fetch(cancelUrl, {
+            method: 'DELETE',
+            signal: AbortSignal.timeout(20_000),
+          });
+          assert.ok(
+            cancelRes.status === 200 || cancelRes.status === 204,
+            `expected 200 or 204 from cancel, got ${cancelRes.status}`,
+          );
+        } catch (cancelErr) {
+          if (!testErr) throw cancelErr;
+          testErr.cause = cancelErr;
+        }
       }
     }
   });
