@@ -171,4 +171,37 @@ describe('lnurlp callback', () => {
       });
     }
   });
+
+  it('GET BinancePay callback is 200 with uri or 503', async (t) => {
+    const pay = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
+    if (skipIfNoPending(t, pay)) return;
+    assert.equal(pay.status, 200);
+    const bp = (pay.body.transferAmounts ?? []).find((ta) => ta.method === 'BinancePay');
+    assert.ok(bp, 'expected BinancePay in transferAmounts');
+    const asset = bp.available && bp.assets?.[0]?.asset ? bp.assets[0].asset : 'USDT';
+    const url = callbackUrl(pay.body.callback, {
+      quote: pay.body.quote.id,
+      method: 'BinancePay',
+      asset,
+    });
+    let status;
+    let body;
+    try {
+      ({ status, body } = await getJson(url));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const http = msg.match(/HTTP (\d+)/);
+      assert.ok(http, msg);
+      status = Number(http[1]);
+      body = { message: msg };
+    }
+    if (status === 200) {
+      assert.equal(body.blockchain, 'BinancePay');
+      assert.equal(typeof body.uri, 'string');
+      assert.ok(body.uri.length > 0);
+      return;
+    }
+    assert.equal(status, 503);
+    assert.equal(typeof body.message, 'string');
+  });
 });

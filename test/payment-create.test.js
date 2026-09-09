@@ -52,6 +52,9 @@ describe('paymentLink payment create (POS)', { skip: !POS_ENABLED }, () => {
   it('creates and cancels a payment with access key', async () => {
     const key = POS_KEY;
     const posLinkId = POS_LINK_ID;
+    assert.ok(posLinkId);
+    assert.notEqual(posLinkId, LINK_ID);
+    assert.notEqual(posLinkId, 'pl_beeddb41cd4b6d9e');
     const externalId = `ocp-tests-${Date.now()}`;
     const createUrl =
       `${BASE}/paymentLink/payment?key=${encodeURIComponent(key)}` +

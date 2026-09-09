@@ -104,6 +104,7 @@ describe('public invoice create, cancel, wait', () => {
       assert.equal(typeof body.id, 'string');
       assert.ok(body.id.startsWith('pl_'));
       assert.equal(body.standard, 'OpenCryptoPay');
+      assert.equal(body.requestedAmount.amount, 0.01);
     } finally {
       if (id) await cancelInvoice(id);
     }
