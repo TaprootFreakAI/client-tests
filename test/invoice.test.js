@@ -60,6 +60,7 @@ describe('public invoice create, cancel, wait', () => {
   it('GET /plp compact create then cancel', async () => {
     const m = `ocp-plp-${Date.now()}`;
     let id;
+    let testErr;
     try {
       const { status, body } = await getJson(
         `${BASE}/plp?r=${encodeURIComponent(ROUTE)}&a=0.01&m=${encodeURIComponent(m)}`,
@@ -70,8 +71,18 @@ describe('public invoice create, cancel, wait', () => {
       id = body.id;
       assert.equal(body.standard, 'OpenCryptoPay');
       assert.equal(body.requestedAmount.amount, 0.01);
+    } catch (err) {
+      testErr = err;
+      throw err;
     } finally {
-      if (id) await cancelInvoice(id);
+      if (id) {
+        try {
+          await cancelInvoice(id);
+        } catch (cancelErr) {
+          if (!testErr) throw cancelErr;
+          testErr.cause = cancelErr;
+        }
+      }
     }
   });
 

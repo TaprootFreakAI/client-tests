@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { LINK_ID, getJson } from '../lib/http.js';
+import { getJson } from '../lib/http.js';
 import { withInvoice } from './support.js';
 
 describe('lnurlp tx', () => {

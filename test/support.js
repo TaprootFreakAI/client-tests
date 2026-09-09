@@ -36,18 +36,6 @@ async function openInvoice(message) {
   return { id, body };
 }
 
-export async function createInvoice(message) {
-  const created = await openInvoice(message);
-  try {
-    assert.equal(created.body.standard, 'OpenCryptoPay');
-    assert.equal(created.body.requestedAmount.amount, 0.01);
-    return created;
-  } catch (err) {
-    await cancelInvoice(created.id);
-    throw err;
-  }
-}
-
 /**
  * Cancel a created invoice. Refuses the demo link id.
  * @param {string} id
@@ -68,14 +56,28 @@ export async function cancelInvoice(id) {
 export async function withInvoice(fn) {
   const message = `ocp-tests-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   let id;
+  let fnErr;
   try {
     const created = await openInvoice(message);
     id = created.id;
     assert.equal(created.body.standard, 'OpenCryptoPay');
     assert.equal(created.body.requestedAmount.amount, 0.01);
     return await fn({ id, body: created.body });
+  } catch (err) {
+    fnErr = err;
+    throw err;
   } finally {
-    if (id) await cancelInvoice(id);
+    if (id) {
+      try {
+        await cancelInvoice(id);
+      } catch (cancelErr) {
+        if (fnErr) {
+          fnErr.cause = cancelErr;
+        } else {
+          throw cancelErr;
+        }
+      }
+    }
   }
 }
 
