@@ -1,16 +1,17 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { BASE, LINK_ID, getJson } from '../lib/http.js';
+import { BASE, getJson } from '../lib/http.js';
+import { withInvoice } from './support.js';
 
 describe('lnurlp pay request', () => {
-  it(`GET /lnurlp/${LINK_ID} returns pay request or no pending payment`, async () => {
-    const { status, body } = await getJson(`/lnurlp/${LINK_ID}?timeout=0`);
-
-    if (status === 200) {
+  it('GET /lnurlp/{created} returns pay request schema', async () => {
+    await withInvoice(async ({ id }) => {
+      const { status, body } = await getJson(`/lnurlp/${id}?timeout=0`);
+      assert.equal(status, 200);
       assert.equal(body.standard, 'OpenCryptoPay');
-      assert.equal(body.id, LINK_ID);
+      assert.equal(body.id, id);
       assert.equal(body.tag, 'payRequest');
-      assert.equal(body.callback, `${BASE}/lnurlp/cb/${LINK_ID}`);
+      assert.equal(body.callback, `${BASE}/lnurlp/cb/${id}`);
       assert.equal(typeof body.quote.id, 'string');
       assert.ok(body.quote.id.startsWith('plq_'));
       assert.equal(typeof body.quote.payment, 'string');
@@ -59,18 +60,7 @@ describe('lnurlp pay request', () => {
       }
       assert.ok(body.transferAmounts.some((t) => t.method === 'Lightning'));
       assert.ok(body.transferAmounts.some((t) => t.method === 'Ethereum'));
-      return;
-    }
-
-    if (status === 404 && body?.message === 'No pending payment found') {
-      assert.equal(body.id, LINK_ID);
-      assert.equal(body.standard, 'OpenCryptoPay');
-      return;
-    }
-
-    assert.fail(
-      `Unexpected status ${status} message=${body?.message ?? '(none)'}`,
-    );
+    });
   });
 
   it('GET /lnurlp/pl_doesnotexist returns Payment link not found', async () => {

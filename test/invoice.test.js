@@ -1,36 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { BASE, LINK_ID, getJson } from '../lib/http.js';
-
-const ROUTE = process.env.OCP_ROUTE ?? 'DFX VM 01';
-
-async function createInvoice(message) {
-  const { status, body } = await getJson(
-    `/paymentLink/payment?route=${encodeURIComponent(ROUTE)}` +
-      `&amount=0.01&message=${encodeURIComponent(message)}`,
-  );
-  assert.equal(status, 200);
-  assert.equal(body.standard, 'OpenCryptoPay');
-  assert.equal(body.requestedAmount.amount, 0.01);
-  assert.equal(typeof body.id, 'string');
-  assert.ok(body.id.startsWith('pl_'));
-  return { id: body.id, body };
-}
-
-async function cancelInvoice(id) {
-  if (!id || id === LINK_ID || id === 'pl_beeddb41cd4b6d9e') {
-    throw new Error(`refusing to cancel demo link id: ${id}`);
-  }
-  const res = await fetch(`${BASE}/lnurlp/cancel/${id}`, {
-    method: 'DELETE',
-    signal: AbortSignal.timeout(20_000),
-  });
-  const text = await res.text();
-  assert.ok(text.length > 0);
-  const body = JSON.parse(text);
-  assert.equal(res.status, 200);
-  assert.equal(body.status, 'Cancelled');
-}
+import { BASE, getJson } from '../lib/http.js';
+import { ROUTE, cancelInvoice, withInvoice } from './support.js';
 
 describe('public invoice create, cancel, wait', () => {
   it('GET /paymentLink/payment with no query returns 400 validation array', async () => {
@@ -55,10 +26,8 @@ describe('public invoice create, cancel, wait', () => {
   });
 
   it('creates invoice, pending wait aborts, cancel then wait is 404', async () => {
-    const message = `ocp-tests-${Date.now()}`;
     let id;
-    try {
-      const created = await createInvoice(message);
+    await withInvoice(async (created) => {
       id = created.id;
 
       const pending = await getJson(`/lnurlp/${id}?timeout=0`);
@@ -81,15 +50,11 @@ describe('public invoice create, cancel, wait', () => {
           );
         },
       );
-    } finally {
-      if (id) await cancelInvoice(id);
-    }
+    });
 
-    if (id) {
-      const { status, body } = await getJson(`/lnurlp/wait/${id}`);
-      assert.equal(status, 404);
-      assert.equal(body.message, 'No pending payment found');
-    }
+    const { status, body } = await getJson(`/lnurlp/wait/${id}`);
+    assert.equal(status, 404);
+    assert.equal(body.message, 'No pending payment found');
   });
 
   it('GET /plp compact create then cancel', async () => {

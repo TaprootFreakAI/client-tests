@@ -12,3 +12,6 @@ jobs:
         with:
           node-version: '22'
       - run: npm test
+        env:
+          OCP_BASE_URL: https://dev.api.dfx.swiss/v1
+          OCP_ROUTE: SPAR

@@ -1,4 +1,9 @@
-import { BASE } from '../lib/http.js';
+import assert from 'node:assert/strict';
+import { BASE, LINK_ID, getJson } from '../lib/http.js';
+
+export const ROUTE =
+  process.env.OCP_ROUTE ??
+  (BASE.includes('dev.api.dfx.swiss') ? 'SPAR' : 'DFX VM 01');
 
 /**
  * Build a callback URL with optional query params.
@@ -15,15 +20,50 @@ export function callbackUrl(callback, { quote, method, asset } = {}) {
 }
 
 /**
- * Skip when the demo link has no pending payment.
- * @returns {boolean} true if skipped
+ * Create a 0.01 CHF OpenCryptoPay invoice on ROUTE.
+ * @param {string} message
+ * @returns {Promise<{ id: string, body: object }>}
  */
-export function skipIfNoPending(t, pay) {
-  if (pay.status === 404 && pay.body?.message === 'No pending payment found') {
-    t.skip('No pending payment on demo link');
-    return true;
+export async function createInvoice(message) {
+  const { status, body } = await getJson(
+    `/paymentLink/payment?route=${encodeURIComponent(ROUTE)}` +
+      `&amount=0.01&message=${encodeURIComponent(message)}`,
+  );
+  assert.equal(status, 200);
+  assert.equal(body.standard, 'OpenCryptoPay');
+  assert.equal(body.requestedAmount.amount, 0.01);
+  assert.equal(typeof body.id, 'string');
+  assert.ok(body.id.startsWith('pl_'));
+  return { id: body.id, body };
+}
+
+/**
+ * Cancel a created invoice. Refuses the demo link id.
+ * @param {string} id
+ */
+export async function cancelInvoice(id) {
+  if (!id || id === LINK_ID || id === 'pl_beeddb41cd4b6d9e') {
+    throw new Error(`refusing to cancel demo link id: ${id}`);
   }
-  return false;
+  const { status, body } = await jsonFetch('DELETE', `/lnurlp/cancel/${id}`);
+  assert.equal(status, 200);
+  assert.equal(body.status, 'Cancelled');
+}
+
+/**
+ * Create an invoice, run fn, always cancel in finally.
+ * @param {(created: { id: string, body: object }) => Promise<unknown>} fn
+ */
+export async function withInvoice(fn) {
+  const message = `ocp-tests-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  let id;
+  try {
+    const created = await createInvoice(message);
+    id = created.id;
+    return await fn({ id, body: created.body });
+  } finally {
+    if (id) await cancelInvoice(id);
+  }
 }
 
 /**
