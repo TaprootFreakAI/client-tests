@@ -83,18 +83,12 @@ describe('paymentLink payment create (POS)', { skip: !POS_ENABLED }, () => {
       assert.ok(createText.length > 0);
       const createBody = JSON.parse(createText);
       assert.ok(
-        createBody.id != null ||
-          createBody.uniqueId != null ||
-          (createBody.payment != null && typeof createBody.payment === 'object'),
-        'expected payment unique id or payment object',
+        typeof createBody.uniqueId === 'string' || typeof createBody.id === 'number',
+        'expected create body uniqueId string or id number',
       );
 
       const pay = await getJson(`/lnurlp/${posLinkId}?timeout=0`);
-      assert.ok(
-        pay.status === 200 ||
-          (pay.status === 404 && pay.body?.message === 'No pending payment found'),
-        `unexpected pay-request status ${pay.status}`,
-      );
+      assert.equal(pay.status, 200);
     } finally {
       if (created) {
         const cancelUrl =

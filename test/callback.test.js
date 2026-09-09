@@ -18,10 +18,6 @@ async function getCallbackOrSkip(nested, url, method, linkId) {
         assert.equal(typeof msg, 'string');
         return null;
       }
-      if (code >= 500) {
-        nested.skip(msg);
-        return null;
-      }
     }
     throw err;
   }
@@ -39,8 +35,7 @@ async function getCallbackOrSkip(nested, url, method, linkId) {
       assert.equal(typeof body.message, 'string');
       return null;
     }
-    nested.skip(typeof body?.message === 'string' ? body.message : `HTTP ${status}`);
-    return null;
+    assert.fail(`callback HTTP ${status}: ${body?.message ?? '(none)'}`);
   }
   return { status, body };
 }
@@ -92,25 +87,11 @@ describe('lnurlp callback', () => {
         }
       });
 
-      await t.test('GET callback with quote only defaults to Lightning pr', async (nested) => {
+      await t.test('GET callback with quote only defaults to Lightning pr', async () => {
         const url = callbackUrl(pay.body.callback, { quote: quoteId });
         let status;
         let body;
-        try {
-          ({ status, body } = await getJson(url));
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          const http = msg.match(/HTTP (\d+)/);
-          if (http && Number(http[1]) >= 500) {
-            nested.skip(msg);
-            return;
-          }
-          throw err;
-        }
-        if (status >= 500) {
-          nested.skip(typeof body?.message === 'string' ? body.message : `HTTP ${status}`);
-          return;
-        }
+        ({ status, body } = await getJson(url));
         assert.equal(status, 200);
         assert.equal(typeof body.pr, 'string');
         assert.ok(body.pr.toLowerCase().startsWith('ln'));

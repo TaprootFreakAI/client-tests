@@ -3,19 +3,22 @@ import assert from 'node:assert/strict';
 import { LINK_ID, getJson } from '../lib/http.js';
 
 describe('LNURL siblings', () => {
-  it('GET /lnurlw/{LINK_ID} is not an Open CryptoPay pay link', async () => {
+  it('GET /lnurlw/{LINK_ID} returns LNURL link not found', async () => {
     const { status, body } = await getJson(`/lnurlw/${LINK_ID}`);
-    assert.ok(status === 404 || status >= 500, `unexpected status ${status}`);
+    assert.equal(status, 404);
+    assert.equal(body.message, 'LNURL link not found');
+  });
+
+  it('GET /lnurld/{LINK_ID} is not an Open CryptoPay pay request', async () => {
+    const { status, body } = await getJson(`/lnurld/${LINK_ID}`);
+    assert.notEqual(status, 200);
+    assert.notEqual(body?.standard, 'OpenCryptoPay');
     if (status === 404) {
       assert.equal(typeof body.message, 'string');
     }
-  });
-
-  it('GET /lnurld/{LINK_ID} is not an Open CryptoPay pay link', async () => {
-    const { status, body } = await getJson(`/lnurld/${LINK_ID}`);
-    assert.ok(status === 404 || status >= 500, `unexpected status ${status}`);
-    if (status === 404) {
+    if (status === 500) {
       assert.equal(typeof body.message, 'string');
+      assert.ok(body.message.includes('split'));
     }
   });
 

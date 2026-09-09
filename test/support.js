@@ -30,11 +30,17 @@ export async function createInvoice(message) {
       `&amount=0.01&message=${encodeURIComponent(message)}`,
   );
   assert.equal(status, 200);
-  assert.equal(body.standard, 'OpenCryptoPay');
-  assert.equal(body.requestedAmount.amount, 0.01);
-  assert.equal(typeof body.id, 'string');
-  assert.ok(body.id.startsWith('pl_'));
-  return { id: body.id, body };
+  const id = body?.id;
+  assert.equal(typeof id, 'string');
+  assert.ok(id.startsWith('pl_'));
+  try {
+    assert.equal(body.standard, 'OpenCryptoPay');
+    assert.equal(body.requestedAmount.amount, 0.01);
+  } catch (err) {
+    await cancelInvoice(id);
+    throw err;
+  }
+  return { id, body };
 }
 
 /**
@@ -60,6 +66,7 @@ export async function withInvoice(fn) {
   try {
     const created = await createInvoice(message);
     id = created.id;
+    assert.equal(typeof id, 'string');
     return await fn({ id, body: created.body });
   } finally {
     if (id) await cancelInvoice(id);
