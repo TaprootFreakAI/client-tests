@@ -11,8 +11,10 @@ describe('LNURL siblings', () => {
 
   it('GET /lnurld/{LINK_ID} is not an Open CryptoPay pay request', async () => {
     const { status, body } = await getJson(`/lnurld/${LINK_ID}`);
-    assert.notEqual(status, 200);
-    assert.notEqual(body?.standard, 'OpenCryptoPay');
+    assert.ok(
+      !(status === 200 && body?.standard === 'OpenCryptoPay'),
+      'lnurld must not return an OpenCryptoPay pay request',
+    );
     if (status === 404) {
       assert.equal(typeof body.message, 'string');
     }

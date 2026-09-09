@@ -65,9 +65,9 @@ describe('public invoice create, cancel, wait', () => {
         `${BASE}/plp?r=${encodeURIComponent(ROUTE)}&a=0.01&m=${encodeURIComponent(m)}`,
       );
       assert.equal(status, 200);
-      id = body.id;
       assert.equal(typeof body.id, 'string');
       assert.ok(body.id.startsWith('pl_'));
+      id = body.id;
       assert.equal(body.standard, 'OpenCryptoPay');
       assert.equal(body.requestedAmount.amount, 0.01);
     } finally {

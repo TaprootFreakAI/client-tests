@@ -24,7 +24,7 @@ export function callbackUrl(callback, { quote, method, asset } = {}) {
  * @param {string} message
  * @returns {Promise<{ id: string, body: object }>}
  */
-export async function createInvoice(message) {
+async function openInvoice(message) {
   const { status, body } = await getJson(
     `/paymentLink/payment?route=${encodeURIComponent(ROUTE)}` +
       `&amount=0.01&message=${encodeURIComponent(message)}`,
@@ -33,14 +33,19 @@ export async function createInvoice(message) {
   const id = body?.id;
   assert.equal(typeof id, 'string');
   assert.ok(id.startsWith('pl_'));
+  return { id, body };
+}
+
+export async function createInvoice(message) {
+  const created = await openInvoice(message);
   try {
-    assert.equal(body.standard, 'OpenCryptoPay');
-    assert.equal(body.requestedAmount.amount, 0.01);
+    assert.equal(created.body.standard, 'OpenCryptoPay');
+    assert.equal(created.body.requestedAmount.amount, 0.01);
+    return created;
   } catch (err) {
-    await cancelInvoice(id);
+    await cancelInvoice(created.id);
     throw err;
   }
-  return { id, body };
 }
 
 /**
@@ -64,9 +69,10 @@ export async function withInvoice(fn) {
   const message = `ocp-tests-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   let id;
   try {
-    const created = await createInvoice(message);
+    const created = await openInvoice(message);
     id = created.id;
-    assert.equal(typeof id, 'string');
+    assert.equal(created.body.standard, 'OpenCryptoPay');
+    assert.equal(created.body.requestedAmount.amount, 0.01);
     return await fn({ id, body: created.body });
   } finally {
     if (id) await cancelInvoice(id);
