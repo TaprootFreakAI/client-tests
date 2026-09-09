@@ -87,11 +87,17 @@ describe('lnurlp callback', () => {
         }
       });
 
+      async function refreshQuote() {
+        const again = await getJson(`/lnurlp/${id}?timeout=0`);
+        assert.equal(again.status, 200);
+        pay.body = again.body;
+        return again.body.quote.id;
+      }
+
       await t.test('GET callback with quote only defaults to Lightning pr', async () => {
-        const url = callbackUrl(pay.body.callback, { quote: quoteId });
-        let status;
-        let body;
-        ({ status, body } = await getJson(url));
+        const q = await refreshQuote();
+        const url = callbackUrl(pay.body.callback, { quote: q });
+        const { status, body } = await getJson(url);
         assert.equal(status, 200);
         assert.equal(typeof body.pr, 'string');
         assert.ok(body.pr.toLowerCase().startsWith('ln'));
@@ -100,8 +106,9 @@ describe('lnurlp callback', () => {
       await t.test(
         'GET callback with method=Ethereum without asset is Invalid method or asset',
         async () => {
+          const q = await refreshQuote();
           const url = callbackUrl(pay.body.callback, {
-            quote: quoteId,
+            quote: q,
             method: 'Ethereum',
           });
           const { status, body } = await getJson(url);
@@ -122,13 +129,14 @@ describe('lnurlp callback', () => {
       });
 
       await t.test('GET callback for unavailable methods accepts 400 or Lightning pr', async (nested) => {
+        const q = await refreshQuote();
         const unavailable = transferAmounts.filter((ta) => ta.available !== true);
         assert.ok(unavailable.length > 0);
         for (const ta of unavailable) {
           const method = ta.method;
           await nested.test(`${method} BTC`, async (inner) => {
             const url = callbackUrl(pay.body.callback, {
-              quote: quoteId,
+              quote: q,
               method,
               asset: 'BTC',
             });
@@ -153,8 +161,9 @@ describe('lnurlp callback', () => {
           return;
         }
         const asset = bp.available && bp.assets?.[0]?.asset ? bp.assets[0].asset : 'USDT';
+        const q = await refreshQuote();
         const url = callbackUrl(pay.body.callback, {
-          quote: quoteId,
+          quote: q,
           method: 'BinancePay',
           asset,
         });
